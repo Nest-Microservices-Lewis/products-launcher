@@ -1,0 +1,57 @@
+version: "3"
+services:
+  nats-server:
+    image: nats:latest
+    ports:
+      - "8222:8222"
+
+  client-gateway:
+    build: ./client-gateway
+    ports:
+      - ${CLIENT_GATEWAY_PORT}:3000
+    volumes:
+      - ./client-gateway/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3000
+      - NATS_SERVERS=nats://nats-server:4222
+    depends_on:
+      - orders-ms
+      - products-ms
+      - nats-server
+
+  products-ms:
+    build: ./products-ms
+    ports:
+      - 3001:3001
+    volumes:
+      - ./products-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3001
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=file:./dev.db
+    depends_on:
+      - nats-server
+
+  orders-ms:
+    build: ./orders-ms
+    ports:
+      - 3002:3002
+    volumes:
+      - ./orders-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    environment:
+      - PORT=3002
+      - NATS_SERVERS=nats://nats-server:4222
+      - DATABASE_URL=postgresql://postgres:postgres@orders-db:5432/ordersdb
+    depends_on:
+      - orders-db
+      - nats-server
+
+  orders-db:
+    extends:
+      file: ./orders-ms/docker-compose.yml
+      service: orders-db
+    volumes:
+      - ./orders-ms/postgres:/var/lib/postgresql/data
