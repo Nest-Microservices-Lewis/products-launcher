@@ -1,4 +1,5 @@
 version: "3"
+
 services:
   nats-server:
     image: nats:latest
@@ -12,9 +13,10 @@ services:
     volumes:
       - ./client-gateway/src:/usr/src/app/src
     command: npm run start:dev
+    env_file:
+      - .env
     environment:
       - PORT=3000
-      - NATS_SERVERS=nats://nats-server:4222
     depends_on:
       - orders-ms
       - products-ms
@@ -25,9 +27,10 @@ services:
     volumes:
       - ./products-ms/src:/usr/src/app/src
     command: npm run start:dev
+    env_file:
+      - .env
     environment:
       - PORT=3001
-      - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=file:./dev.db
     depends_on:
       - nats-server
@@ -37,9 +40,10 @@ services:
     volumes:
       - ./orders-ms/src:/usr/src/app/src
     command: npm run start:dev
+    env_file:
+      - .env
     environment:
       - PORT=3002
-      - NATS_SERVERS=nats://nats-server:4222
       - DATABASE_URL=postgresql://postgres:postgres@orders-db:5432/ordersdb
     depends_on:
       - orders-db
@@ -52,9 +56,10 @@ services:
     volumes:
       - ./payments-ms/src:/usr/src/app/src
     command: npm run start:dev
+    env_file:
+      - .env
     environment:
       - PORT=${PAYMENTS_MS_PORT:-3003}
-      - NATS_SERVERS=nats://nats-server:4222
       - PAYMENTS_MS_PORT=${PAYMENTS_MS_PORT}
       - STRIPE_SECRET=${STRIPE_SECRET}
       - SUCCESS_URL=${SUCCESS_URL}
@@ -63,8 +68,20 @@ services:
     depends_on:
       - nats-server
 
-  # Databases
+  auth-ms:
+    build: ./auth-ms
+    volumes:
+      - ./auth-ms/src:/usr/src/app/src
+    command: npm run start:dev
+    env_file:
+      - .env
+    environment:
+      - PORT=3004
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+    depends_on:
+      - nats-server
 
+  # Databases
   orders-db:
     extends:
       file: ./orders-ms/docker-compose.yml
