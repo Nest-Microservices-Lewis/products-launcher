@@ -1,0 +1,64 @@
+version: "3"
+
+services:
+  nats-server:
+    image: nats:latest
+
+  client-gateway:
+    build:
+      context: ./client-gateway
+      dockerfile: Dockerfile.prod
+    image: client-gateway-prod
+    env_file:
+      - .env.prod
+    ports:
+      - ${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}
+    environment:
+      - PORT=${CLIENT_GATEWAY_PORT}
+
+  auth-ms:
+    build:
+      context: ./auth-ms
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env.prod
+    image: auth-ms-prod
+    environment:
+      - PORT=3004
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+
+  products-ms:
+    build:
+      context: ./products-ms
+      dockerfile: Dockerfile.prod
+    image: products-ms-prod
+    env_file:
+      - .env.prod
+    environment:
+      - PORT=300${PRODUCTS_MS_PORT}
+      - DATABASE_URL=file:./dev.db
+
+  orders-ms:
+    build:
+      context: ./orders-ms
+      dockerfile: Dockerfile.prod
+      args:
+        - ORDERS_MS_DATABASE=${ORDERS_MS_DATABASE}
+    image: orders-ms-prod
+    env_file:
+      - .env.prod
+    environment:
+      - PORT=${ORDERS_MS_PORT}
+      - DATABASE_URL=${ORDERS_MS_DATABASE}
+
+  payments-ms:
+    build:
+      context: ./payments-ms
+      dockerfile: Dockerfile.prod
+    image: payments-ms-prod
+    ports:
+      - ${PAYMENTS_MS_PORT}:${PAYMENTS_MS_PORT}
+    env_file:
+      - .env.prod
+    environment:
+      - PORT=${PAYMENTS_MS_PORT}
